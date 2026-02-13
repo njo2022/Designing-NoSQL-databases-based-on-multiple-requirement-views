@@ -1,0 +1,224 @@
+{
+  "database": "ecommerce_db",
+  "nosql_type": "Document-oriented (MongoDB)",
+  "collections": {
+    "users": {
+      "description": "Profils utilisateurs avec historique d'achats intégré",
+      "schema": {
+        "_id": "ObjectId",
+        "email": "string (unique, indexed)",
+        "name": {
+          "first": "string",
+          "last": "string"
+        },
+        "password_hash": "string",
+        "address": {
+          "street": "string",
+          "city": "string",
+          "postal_code": "string",
+          "country": "string"
+        },
+        "phone": "string",
+        "created_at": "ISODate",
+        "last_login": "ISODate",
+        "preferences": {
+          "language": "string",
+          "currency": "string",
+          "notifications": "boolean"
+        }
+      },
+      "indexes": [
+        {"field": "email", "type": "unique"},
+        {"field": "created_at", "type": "standard"}
+      ],
+      "estimated_size": "10M documents",
+      "access_pattern": "Recherche par email (login), lectures fréquentes"
+    },
+    
+    "products": {
+      "description": "Catalogue produits avec recherche full-text",
+      "schema": {
+        "_id": "ObjectId",
+        "sku": "string (unique)",
+        "name": "string",
+        "description": "string",
+        "category_id": "ObjectId (ref: categories)",
+        "price": {
+          "amount": "decimal",
+          "currency": "string"
+        },
+        "inventory": {
+          "quantity": "integer",
+          "warehouse_location": "string"
+        },
+        "images": ["string (URLs)"],
+        "attributes": {
+          "brand": "string",
+          "color": "string",
+          "size": "string",
+          "weight": "number"
+        },
+        "ratings": {
+          "average": "number",
+          "count": "integer"
+        },
+        "tags": ["string"],
+        "created_at": "ISODate",
+        "updated_at": "ISODate"
+      },
+      "indexes": [
+        {"field": "sku", "type": "unique"},
+        {"field": "category_id", "type": "standard"},
+        {"field": "name", "type": "text"},
+        {"field": "description", "type": "text"},
+        {"field": "tags", "type": "standard"},
+        {"field": "price.amount", "type": "standard"}
+      ],
+      "estimated_size": "1M documents",
+      "access_pattern": "Recherche full-text, filtrage par catégorie/prix, lectures très fréquentes"
+    },
+    
+    "categories": {
+      "description": "Hiérarchie de catégories de produits",
+      "schema": {
+        "_id": "ObjectId",
+        "name": "string",
+        "slug": "string (unique)",
+        "parent_id": "ObjectId (ref: categories, nullable)",
+        "description": "string",
+        "image": "string (URL)",
+        "level": "integer",
+        "path": "string",
+        "product_count": "integer (dénormalisé)",
+        "created_at": "ISODate"
+      },
+      "indexes": [
+        {"field": "slug", "type": "unique"},
+        {"field": "parent_id", "type": "standard"},
+        {"field": "level", "type": "standard"}
+      ],
+      "estimated_size": "1K documents",
+      "access_pattern": "Lectures fréquentes, écritures rares"
+    },
+    
+    "orders": {
+      "description": "Commandes avec informations client et produits dénormalisés",
+      "schema": {
+        "_id": "ObjectId",
+        "order_number": "string (unique, indexed)",
+        "user_id": "ObjectId (ref: users)",
+        "user_snapshot": {
+          "email": "string",
+          "name": "object",
+          "phone": "string"
+        },
+        "items": [
+          {
+            "product_id": "ObjectId",
+            "product_snapshot": {
+              "sku": "string",
+              "name": "string",
+              "price": "object"
+            },
+            "quantity": "integer",
+            "unit_price": "decimal",
+            "subtotal": "decimal"
+          }
+        ],
+        "pricing": {
+          "subtotal": "decimal",
+          "tax": "decimal",
+          "shipping": "decimal",
+          "discount": "decimal",
+          "total": "decimal",
+          "currency": "string"
+        },
+        "shipping_address": {
+          "street": "string",
+          "city": "string",
+          "postal_code": "string",
+          "country": "string"
+        },
+        "status": "string (enum: pending, processing, shipped, delivered, cancelled)",
+        "payment": {
+          "method": "string",
+          "status": "string",
+          "transaction_id": "string"
+        },
+        "tracking": {
+          "carrier": "string",
+          "tracking_number": "string",
+          "estimated_delivery": "ISODate"
+        },
+        "created_at": "ISODate",
+        "updated_at": "ISODate",
+        "status_history": [
+          {
+            "status": "string",
+            "timestamp": "ISODate",
+            "note": "string"
+          }
+        ]
+      },
+      "indexes": [
+        {"field": "order_number", "type": "unique"},
+        {"field": "user_id", "type": "standard"},
+        {"field": "status", "type": "standard"},
+        {"field": "created_at", "type": "standard"},
+        {"field": "payment.status", "type": "standard"}
+      ],
+      "estimated_size": "100M documents (haute vélocité)",
+      "access_pattern": "Écritures très fréquentes, recherche par utilisateur/statut, consistance requise"
+    }
+  },
+  
+  "design_decisions": {
+    "data_modeling": {
+      "strategy": "Dénormalisation stratégique",
+      "rationale": [
+        "User snapshot dans orders: évite les jointures lors de la consultation",
+        "Product snapshot dans orders: historique des prix au moment de l'achat",
+        "Données imbriquées (address, items): réduction des requêtes"
+      ]
+    },
+    
+    "scalability": {
+      "write_throughput": "Milliers de transactions/seconde supportées par:",
+      "techniques": [
+        "Indexes optimisés pour requêtes fréquentes",
+        "Write concern configurable (w:1 pour performance)",
+        "Batch inserts pour commandes multiples",
+        "Connection pooling"
+      ]
+    },
+    
+    "consistency": {
+      "approach": "Eventual consistency pour la plupart, strong pour orders",
+      "details": {
+        "products": "Eventual consistency acceptable (catalogue)",
+        "orders": "Strong consistency requise (writeConcern: majority)",
+        "users": "Eventual consistency acceptable"
+      }
+    },
+    
+    "query_optimization": {
+      "product_search": "Index text + compound indexes (category + price)",
+      "order_lookup": "Index sur user_id + created_at pour historique",
+      "inventory_check": "Index sur products.inventory.quantity"
+    }
+  },
+  
+  "additional_storage": {
+    "cache_layer": {
+      "technology": "Redis",
+      "purpose": "Cache des produits populaires et sessions utilisateurs",
+      "ttl": "300-3600 secondes selon la donnée"
+    },
+    
+    "search_engine": {
+      "technology": "Elasticsearch",
+      "purpose": "Recherche full-text avancée sur produits",
+      "sync": "Via change streams MongoDB"
+    }
+  }
+}

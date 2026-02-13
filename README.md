@@ -1,34 +1,59 @@
-# Algorithme de Dijkstra en JavaScript
+# Projet NoSQL E-Commerce
 
-## Qu'est-ce que l'algorithme de Dijkstra ?
-Dijkstra est un algorithme de plus court chemin sur un graphe pondéré à poids non négatifs. Il part d'un sommet source, maintient une distance minimale provisoire pour chaque sommet, puis sélectionne itérativement le sommet non visité avec la plus petite distance connue pour détendre ses arêtes. Le résultat est la distance minimale de la source vers chaque sommet atteignable.
+## Vue d'ensemble
+Conception d'une base de données NoSQL pour une application e-commerce capable de gérer des milliers de transactions par seconde, avec support pour les analyses en temps réel et haute disponibilité.
 
 ## Structure du projet
-- `dijkstra.js` : implémentation de l'algorithme et exemple d'utilisation.
 
-## Prérequis
-- Node.js installé (version 14+ recommandée).
-
-## Installation
-Aucune dépendance externe n'est requise. Placez-vous simplement dans le dossier du projet.
-
-## Exécution de l'exemple inclus
-```bash
-node dijkstra.js
 ```
-La commande affiche les distances calculées depuis le sommet `A` pour le graphe d'exemple défini dans `dijkstra.js`.
-
-## Utilisation dans un autre module
-```javascript
-const { dijkstra } = require('./dijkstra');
-
-const graph = {
-  A: { B: 4, C: 2 },
-  B: { A: 4, C: 5, D: 10 },
-  C: { A: 2, B: 5, D: 3 },
-  D: { B: 10, C: 3 },
-};
-
-const distances = dijkstra(graph, 'A');
-console.log(distances);
+nosql-ecommerce-project/
+├── schemas/
+│   ├── initial-design.json          # Schéma initial (MongoDB)
+│   └── refactored-design.json       # Schéma refactorisé
+├── exemples/
+│   ├── sample-data.json             # Données d'exemple
+│   └── query-examples.md            # Exemples de requêtes
+├── docs/
+│   ├── design-decisions.md          # Décisions de conception
+│   └── reflection-report.md         # Rapport de réflexion
+└── README.md
 ```
+
+## Technologies choisies
+
+- **Base de données principale**: MongoDB (Document-oriented)
+- **Raison**: Flexibilité du schéma, performance élevée en lecture/écriture, support natif du sharding et de la réplication
+- **Compléments**: Redis (cache), Elasticsearch (recherche full-text)
+
+## Partie 1: Design Initial
+
+### Entités principales
+- **Users**: Profils utilisateurs
+- **Products**: Catalogue de produits
+- **Orders**: Commandes avec détails complets
+- **Categories**: Classification des produits
+
+### Caractéristiques
+- Index optimisés pour recherches rapides
+- Dénormalisation stratégique pour performance
+- Support de milliers de transactions/seconde
+
+## Partie 2: Design Refactorisé
+
+### Nouvelles exigences
+1. Analyses à grande échelle (tendances, ventes)
+2. Haute disponibilité et tolérance aux partitions
+
+### Stratégies implémentées
+- **Sharding**: Distribution des données par région géographique
+- **Réplication**: Ensemble de répliques (3+ nœuds)
+- **Dénormalisation**: Données pré-agrégées pour analytics
+
+## Démarrage rapide
+
+Consultez les fichiers suivants dans l'ordre:
+1. `schemas/initial-design.json` - Schéma de base
+2. `schemas/refactored-design.json` - Schéma optimisé
+3. `docs/design-decisions.md` - Explications détaillées
+4. `docs/reflection-report.md` - Analyse et réflexion
+
